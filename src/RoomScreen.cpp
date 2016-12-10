@@ -228,6 +228,10 @@ currentWeapon(TYPE_SHOTGUN)
 
     // other initializations
     createZombie(50, 50);
+
+    zombieFightMusic.openFromFile("res/LD37_ZombieFight.ogg");
+    zombieFightMusic.setLoop(true);
+    zombieFightMusic.play();
 }
 
 RoomScreen::~RoomScreen()

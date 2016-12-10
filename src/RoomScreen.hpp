@@ -54,6 +54,8 @@
 #include <random>
 #include <unordered_map>
 
+#include <SFML/Audio.hpp>
+
 #include "Screen.hpp"
 #include "Sprite.hpp"
 
@@ -126,6 +128,8 @@ private:
     std::unordered_map<unsigned int, sf::Vector2f> playerWeaponOffsets;
 
     unsigned int currentWeapon;
+
+    sf::Music zombieFightMusic;
 
 };
 
