@@ -7,7 +7,7 @@
 
 Game::Game() :
 runFlag(true),
-window(sf::VideoMode(1280,720), GAME_TITLE_NAME)
+window(sf::VideoMode(800, 450), GAME_TITLE_NAME)
 {
     window.setFramerateLimit(60);
     currentScreen = std::make_unique<RoomScreen>();
@@ -46,7 +46,7 @@ void Game::run()
     };
 
     auto draw = [this] () {
-        window.clear();
+        window.clear(sf::Color(30, 30, 30));
 
         currentScreen->draw(window);
 
