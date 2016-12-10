@@ -3,6 +3,10 @@
 
 #include <cmath>
 
+#include <iostream>
+
+#include <GDT/CollisionDetection.hpp>
+
 Entity::Entity() :
 health(ZOMBIE_START_HEALTH),
 alive(false),
@@ -25,7 +29,10 @@ lifetime(1.0f)
 RoomScreen::RoomScreen() :
 entityVector(ENTITY_VECTOR_START_SIZE),
 flags(),
-playerDiag(PLAYER_WALK_SPEED / std::sqrt(2.0f))
+playerDiag(PLAYER_WALK_SPEED / std::sqrt(2.0f)),
+gen(std::random_device()()),
+zeroToOneDist(0.0f, 1.0f),
+currentWeapon(TYPE_SHOTGUN)
 {
     zombieTexture.loadFromFile("res/zombie.png");
 
@@ -142,6 +149,7 @@ playerDiag(PLAYER_WALK_SPEED / std::sqrt(2.0f))
         sf::IntRect(0, 0, 32, 32), 1.0f
     ));
     weaponSMG.sprite.setOrigin(0.0f, 16.0f);
+    weaponSMG.lifetime = 0.0f;
     weaponSMGBullet.sprite.setTexture(weaponsTexture);
     weaponSMGBullet.sprite.registerMapping(0, SpriteData(
         sf::IntRect(0, 32, 16, 16), 1.0f
@@ -150,12 +158,14 @@ playerDiag(PLAYER_WALK_SPEED / std::sqrt(2.0f))
     weaponSMGBullet.health = WEAPON_SMG_DAMAGE;
     weaponSMGBullet.lifetime = WEAPON_SMG_BULLET_LIFETIME;
     weaponSMGBullet.type = TYPE_SMG_BULLET;
+    weaponSMGBullet.alive = true;
 
     weaponRifle.sprite.setTexture(weaponsTexture);
     weaponRifle.sprite.registerMapping(0, SpriteData(
         sf::IntRect(32, 0, 48, 32), 1.0f
     ));
     weaponRifle.sprite.setOrigin(0.0f, 16.0f);
+    weaponRifle.lifetime = 0.0f;
     weaponRifleBullet.sprite.setTexture(weaponsTexture);
     weaponRifleBullet.sprite.registerMapping(0, SpriteData(
         sf::IntRect(32, 32, 32, 16), 1.0f
@@ -164,12 +174,14 @@ playerDiag(PLAYER_WALK_SPEED / std::sqrt(2.0f))
     weaponRifleBullet.health = WEAPON_RIFLE_DAMAGE;
     weaponRifleBullet.lifetime = WEAPON_RIFLE_BULLET_LIFETIME;
     weaponRifleBullet.type = TYPE_RIFLE_BULLET;
+    weaponRifleBullet.alive = true;
 
     weaponLaser.sprite.setTexture(weaponsTexture);
     weaponLaser.sprite.registerMapping(0, SpriteData(
         sf::IntRect(80, 0, 32, 32), 1.0f
     ));
     weaponLaser.sprite.setOrigin(0.0f, 16.0f);
+    weaponLaser.lifetime = 0.0f;
     weaponLaserBullet.sprite.setTexture(weaponsTexture);
     weaponLaserBullet.sprite.registerMapping(0, SpriteData(
         sf::IntRect(80, 32, 32, 8), 1.0f
@@ -178,12 +190,14 @@ playerDiag(PLAYER_WALK_SPEED / std::sqrt(2.0f))
     weaponLaserBullet.health = WEAPON_LASER_DAMAGE;
     weaponLaserBullet.lifetime = WEAPON_LASER_BULLET_LIFETIME;
     weaponLaserBullet.type = TYPE_LASER_BULLET;
+    weaponLaserBullet.alive = true;
 
     weaponShotgun.sprite.setTexture(weaponsTexture);
     weaponShotgun.sprite.registerMapping(0, SpriteData(
         sf::IntRect(112, 0, 48, 32), 1.0f
     ));
     weaponShotgun.sprite.setOrigin(0.0f, 16.0f);
+    weaponShotgun.lifetime = 0.0f;
     weaponShotgunBullet.sprite.setTexture(weaponsTexture);
     weaponShotgunBullet.sprite.registerMapping(0, SpriteData(
         sf::IntRect(112, 32, 16, 16), 1.0f
@@ -192,14 +206,32 @@ playerDiag(PLAYER_WALK_SPEED / std::sqrt(2.0f))
     weaponShotgunBullet.health = WEAPON_SHOTGUN_DAMAGE;
     weaponShotgunBullet.lifetime = WEAPON_SHOTGUN_BULLET_LIFETIME;
     weaponShotgunBullet.type = TYPE_SHOTGUN_BULLET;
+    weaponShotgunBullet.alive = true;
+
+    // initialize offsets of player weapons
+    playerWeaponOffsets.insert(std::make_pair(0, sf::Vector2f(7.0f, 28.0f)));
+    playerWeaponOffsets.insert(std::make_pair(1, sf::Vector2f(7.0f, 28.0f)));
+
+    playerWeaponOffsets.insert(std::make_pair(2, sf::Vector2f(25.0f, 27.0f)));
+    playerWeaponOffsets.insert(std::make_pair(3, sf::Vector2f(25.0f, 27.0f)));
+
+    playerWeaponOffsets.insert(std::make_pair(4, sf::Vector2f(28.0f, 29.0f)));
+    playerWeaponOffsets.insert(std::make_pair(5, sf::Vector2f(28.0f, 29.0f)));
+
+    playerWeaponOffsets.insert(std::make_pair(6, sf::Vector2f(5.0f, 29.0f)));
+    playerWeaponOffsets.insert(std::make_pair(7, sf::Vector2f(5.0f, 29.0f)));
+
+    // other initializations
+    createZombie(50, 50);
 }
 
 RoomScreen::~RoomScreen()
 {
 }
 
-void RoomScreen::update(float dt)
+void RoomScreen::update(float dt, sf::RenderWindow& window)
 {
+    std::cout << "Start update...";
     // player input
     if(flags.test(0) && !flags.test(1))
     {
@@ -301,6 +333,39 @@ void RoomScreen::update(float dt)
         }
     }
 
+    // continue firing
+    if(flags.test(4) && (currentWeapon == TYPE_SMG || currentWeapon == TYPE_LASER))
+    {
+        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+        sf::Vector2f pos = player.sprite.getPosition() + playerWeaponOffsets.at(player.sprite.getPhase());
+        fireWeapon(currentWeapon,
+            std::atan2(-((float)mousePos.y - pos.y),
+                (float)mousePos.x - pos.x),
+            pos);
+    }
+
+    // update reload times
+    weaponSMG.lifetime -= dt;
+    if(weaponSMG.lifetime < 0.0f)
+    {
+        weaponSMG.lifetime = 0.0f;
+    }
+    weaponRifle.lifetime -= dt;
+    if(weaponRifle.lifetime < 0.0f)
+    {
+        weaponRifle.lifetime = 0.0f;
+    }
+    weaponLaser.lifetime -= dt;
+    if(weaponLaser.lifetime < 0.0f)
+    {
+        weaponLaser.lifetime = 0.0f;
+    }
+    weaponShotgun.lifetime -= dt;
+    if(weaponShotgun.lifetime < 0.0f)
+    {
+        weaponShotgun.lifetime = 0.0f;
+    }
+
     // update entities
     for(auto iter = entityVector.begin();
         iter != entityVector.end();
@@ -308,6 +373,119 @@ void RoomScreen::update(float dt)
     {
         if(iter->alive)
         {
+            if(iter->type >= TYPE_SMG_BULLET &&
+                iter->type <= TYPE_SHOTGUN_BULLET)
+            {
+                iter->lifetime -= dt;
+                if(iter->lifetime <= 0.0f)
+                {
+                    iter->alive = false;
+                    continue;
+                }
+                for(auto iter1 = entityVector.begin();
+                    iter1 != entityVector.end();
+                    ++iter1)
+                {
+                    if(iter1->alive && iter1->type == TYPE_ZOMBIE)
+                    { // collision detection between bullet and zombie
+                        float zombieBox[8] = {
+                            iter1->sprite.getPosition().x,
+                            iter1->sprite.getPosition().y,
+                            iter1->sprite.getPosition().x + 32.0f,
+                            iter1->sprite.getPosition().y,
+                            iter1->sprite.getPosition().x + 32.0f,
+                            iter1->sprite.getPosition().y + 64.0f,
+                            iter1->sprite.getPosition().x,
+                            iter1->sprite.getPosition().y + 64.0f
+                        };
+                        auto checkCollision = [&iter, &iter1] (float* array, sf::Vector2f& point) -> bool {
+                            if(GDT::isWithinPolygon(array, 8, point.x, point.y))
+                            {
+                                iter1->health -= iter->health;
+                                if(iter1->health <= 0)
+                                {
+                                    iter1->alive = false;
+                                }
+                                iter->alive = false;
+                                iter1->lifetime = ZOMBIE_HIT_FADE_TIME;
+                                return true;
+                            }
+                            return false;
+                        };
+                        sf::Vector2f point = iter->sprite.getTransform() * sf::Vector2f();
+                        if(checkCollision(zombieBox, point))
+                        {
+                            break;
+                        }
+                        else if(iter->type == TYPE_SMG_BULLET || iter->type == TYPE_SHOTGUN_BULLET)
+                        {
+                            point = iter->sprite.getTransform() * sf::Vector2f(16.0f, 0.0f);
+                            if(checkCollision(zombieBox, point))
+                            {
+                                break;
+                            }
+                            point = iter->sprite.getTransform() * sf::Vector2f(16.0f, 16.0f);
+                            if(checkCollision(zombieBox, point))
+                            {
+                                break;
+                            }
+                            point = iter->sprite.getTransform() * sf::Vector2f(0.0f, 16.0f);
+                            if(checkCollision(zombieBox, point))
+                            {
+                                break;
+                            }
+                        }
+                        else if(iter->type == TYPE_RIFLE_BULLET)
+                        {
+                            point = iter->sprite.getTransform() * sf::Vector2f(32.0f, 0.0f);
+                            if(checkCollision(zombieBox, point))
+                            {
+                                break;
+                            }
+                            point = iter->sprite.getTransform() * sf::Vector2f(32.0f, 16.0f);
+                            if(checkCollision(zombieBox, point))
+                            {
+                                break;
+                            }
+                            point = iter->sprite.getTransform() * sf::Vector2f(0.0f, 16.0f);
+                            if(checkCollision(zombieBox, point))
+                            {
+                                break;
+                            }
+                        }
+                        else// if(iter->type == TYPE_LASER_BULLET)
+                        {
+                            point = iter->sprite.getTransform() * sf::Vector2f(32.0f, 0.0f);
+                            if(checkCollision(zombieBox, point))
+                            {
+                                break;
+                            }
+                            point = iter->sprite.getTransform() * sf::Vector2f(32.0f, 8.0f);
+                            if(checkCollision(zombieBox, point))
+                            {
+                                break;
+                            }
+                            point = iter->sprite.getTransform() * sf::Vector2f(0.0f, 8.0f);
+                            if(checkCollision(zombieBox, point))
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else if(iter->type == TYPE_ZOMBIE)
+            {
+                unsigned char zombieHit = 255 * (1.0f - (iter->lifetime / ZOMBIE_HIT_FADE_TIME));
+                iter->sprite.setColor(sf::Color(255, zombieHit, zombieHit));
+
+                iter->lifetime -= dt;
+                if(iter->lifetime < 0.0f)
+                {
+                    iter->lifetime = 0.0f;
+                }
+            }
+
             iter->sprite.update(dt);
             iter->sprite.move(
                 iter->velX * dt,
@@ -320,6 +498,9 @@ void RoomScreen::update(float dt)
         player.velX * dt,
         player.velY * dt
     );
+
+    std::cout << " End Update." << std::endl;
+//    std::cout << "Entities size: " << entityVector.size() << std::endl;
 }
 
 void RoomScreen::handleEvent(const sf::Event& event)
@@ -378,10 +559,26 @@ void RoomScreen::handleEvent(const sf::Event& event)
             flags.reset(3);
         }
     }
+    else if(event.type == sf::Event::MouseButtonPressed &&
+        event.mouseButton.button == sf::Mouse::Left)
+    {
+        sf::Vector2f pos = player.sprite.getPosition() + playerWeaponOffsets.at(player.sprite.getPhase());
+        fireWeapon(currentWeapon,
+            std::atan2(-((float)event.mouseButton.y - pos.y),
+                (float)event.mouseButton.x - pos.x),
+            pos);
+        flags.set(4);
+    }
+    else if(event.type == sf::Event::MouseButtonReleased &&
+        event.mouseButton.button == sf::Mouse::Left)
+    {
+        flags.reset(4);
+    }
 }
 
 void RoomScreen::draw(sf::RenderWindow& window)
 {
+    std::cout << "Start draw...";
     for(auto iter = entityVector.begin();
         iter != entityVector.end();
         ++iter)
@@ -393,6 +590,8 @@ void RoomScreen::draw(sf::RenderWindow& window)
     }
 
     player.sprite.draw(window);
+
+    std::cout << " End draw." << std::endl;
 }
 
 unsigned int RoomScreen::switchScreen()
@@ -413,21 +612,120 @@ void RoomScreen::createZombie(float x, float y)
     }
     entityVector.at(i).alive = true;
     entityVector.at(i).health = ZOMBIE_START_HEALTH;
+    entityVector.at(i).lifetime = 0.0f;
+    entityVector.at(i).type = TYPE_ZOMBIE;
     baseZombieSprite.setPosition(x, y);
     entityVector.at(i).sprite = baseZombieSprite;
 }
 
+void RoomScreen::fireWeapon(char type, float angle, const sf::Vector2f& firePos)
+{
+    switch(type)
+    {
+    case TYPE_SMG:
+        if(weaponSMG.lifetime > 0.0f)
+        {
+            break;
+        }
+        weaponSMG.lifetime = WEAPON_SMG_RELOAD_TIME;
+        spawnBullet(TYPE_SMG_BULLET, firePos.x, firePos.y, angle);
+        break;
+    case TYPE_RIFLE:
+        if(weaponRifle.lifetime > 0.0f)
+        {
+            break;
+        }
+        weaponRifle.lifetime = WEAPON_RIFLE_RELOAD_TIME;
+        spawnBullet(TYPE_RIFLE_BULLET, firePos.x, firePos.y, angle);
+        break;
+    case TYPE_LASER:
+        if(weaponLaser.lifetime > 0.0f)
+        {
+            break;
+        }
+        weaponLaser.lifetime = WEAPON_LASER_RELOAD_TIME;
+        spawnBullet(TYPE_LASER_BULLET, firePos.x, firePos.y, angle);
+        break;
+    case TYPE_SHOTGUN:
+        if(weaponShotgun.lifetime > 0.0f)
+        {
+            break;
+        }
+        weaponShotgun.lifetime = WEAPON_SHOTGUN_RELOAD_TIME;
+        spawnBullet(TYPE_SHOTGUN_BULLET, firePos.x, firePos.y, angle);
+        break;
+    }
+}
+
 void RoomScreen::spawnBullet(char type, float x, float y, float angle)
 {
-    unsigned int i = 0;
-    while(entityVector.at(i).alive)
+    if(type != TYPE_SHOTGUN_BULLET)
     {
-        ++i;
-        if(i >= entityVector.size())
+        unsigned int i = 0;
+        while(entityVector.at(i).alive)
         {
-            entityVector.resize(entityVector.size() * 2);
+            ++i;
+            if(i >= entityVector.size())
+            {
+                entityVector.resize(entityVector.size() * 2);
+            }
+        }
+        switch(type)
+        {
+        case TYPE_SMG_BULLET:
+            angle = angle + (zeroToOneDist(gen) - 0.5f) * WEAPON_SMG_SPREAD;
+            entityVector.at(i) = weaponSMGBullet;
+            entityVector.at(i).velX = std::cos(angle) * WEAPON_SMG_BULLET_SPEED;
+            entityVector.at(i).velY = -std::sin(angle) * WEAPON_SMG_BULLET_SPEED;
+            break;
+        case TYPE_RIFLE_BULLET:
+            entityVector.at(i) = weaponRifleBullet;
+            entityVector.at(i).velX = std::cos(angle) * WEAPON_RIFLE_BULLET_SPEED;
+            entityVector.at(i).velY = -std::sin(angle) * WEAPON_RIFLE_BULLET_SPEED;
+            break;
+        case TYPE_LASER_BULLET:
+            entityVector.at(i) = weaponLaserBullet;
+            entityVector.at(i).velX = std::cos(angle) * WEAPON_LASER_BULLET_SPEED;
+            entityVector.at(i).velY = -std::sin(angle) * WEAPON_LASER_BULLET_SPEED;
+            break;
+        default:
+            break;
+        }
+        entityVector.at(i).sprite.setPosition(x, y);
+        entityVector.at(i).sprite.setRotation(-angle * 180.0f / std::acos(-1.0f));
+    }
+    else
+    {
+        unsigned int indices[WEAPON_SHOTGUN_NUMBER_OF_BULLETS];
+        indices[0] = 0;
+        float randomizedAngle;
+        for(unsigned int i = 0; i < WEAPON_SHOTGUN_NUMBER_OF_BULLETS; ++i)
+        {
+            // find dead entity
+            while(entityVector.at(indices[i]).alive)
+            {
+                ++(indices[i]);
+                if(indices[i] >= entityVector.size())
+                {
+                    entityVector.resize(entityVector.size() * 2);
+                }
+            }
+            // make shotgun bullet
+            entityVector.at(indices[i]) = weaponShotgunBullet;
+
+            randomizedAngle = angle + (zeroToOneDist(gen) - 0.5f) * WEAPON_SHOTGUN_SPREAD;
+            entityVector.at(indices[i]).velX = std::cos(randomizedAngle) * WEAPON_SHOTGUN_BULLET_SPEED;
+            entityVector.at(indices[i]).velY = -std::sin(randomizedAngle) * WEAPON_SHOTGUN_BULLET_SPEED;
+
+            entityVector.at(indices[i]).sprite.setPosition(x, y);
+            entityVector.at(indices[i]).sprite.setRotation(-randomizedAngle * 180.0f / std::acos(-1.0f));
+
+            // prepare for next iteration if there is one
+            if(i + 1 < WEAPON_SHOTGUN_NUMBER_OF_BULLETS)
+            {
+                indices[i+1] = indices[i] + 1;
+            }
         }
     }
-    entityVector.at(i).alive = true;
 }
 

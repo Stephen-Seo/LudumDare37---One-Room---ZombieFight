@@ -9,7 +9,7 @@ Game::Game() :
 runFlag(true),
 window(sf::VideoMode(800, 450), GAME_TITLE_NAME)
 {
-    window.setFramerateLimit(60);
+//    window.setFramerateLimit(60);
     currentScreen = std::make_unique<RoomScreen>();
 }
 
@@ -20,7 +20,7 @@ Game::~Game()
 void Game::run()
 {
     auto update = [this] (float dt) {
-        currentScreen->update(dt);
+        currentScreen->update(dt, window);
 
         sf::Event event;
         while(window.pollEvent(event))
@@ -56,7 +56,7 @@ void Game::run()
     GDT::IntervalBasedGameLoop(&runFlag,
         update,
         draw,
-        0);
+        60);
 
     window.close();
 }

@@ -100,3 +100,8 @@ void Sprite::draw(sf::RenderWindow& window)
     window.draw(sprite, sf::RenderStates(getTransform()));
 }
 
+void Sprite::setColor(sf::Color color)
+{
+    sprite.setColor(color);
+}
+

@@ -16,7 +16,7 @@
 #define WEAPON_SHOTGUN_DAMAGE 7
 
 #define WEAPON_SMG_BULLET_SPEED 500.0f
-#define WEAPON_RIFLE_BULLET_SPEED 1000.0f
+#define WEAPON_RIFLE_BULLET_SPEED 1200.0f
 #define WEAPON_LASER_BULLET_SPEED 700.0f
 #define WEAPON_SHOTGUN_BULLET_SPEED 400.0f
 
@@ -24,6 +24,11 @@
 #define WEAPON_RIFLE_BULLET_LIFETIME 1.0f
 #define WEAPON_LASER_BULLET_LIFETIME 1.2F
 #define WEAPON_SHOTGUN_BULLET_LIFETIME 1.5f
+
+#define WEAPON_SMG_RELOAD_TIME 0.25f
+#define WEAPON_RIFLE_RELOAD_TIME 0.8f
+#define WEAPON_LASER_RELOAD_TIME 0.5f
+#define WEAPON_SHOTGUN_RELOAD_TIME 0.6f
 
 #define TYPE_ZOMBIE 0
 #define TYPE_PLAYER 1
@@ -36,7 +41,16 @@
 #define TYPE_LASER_BULLET 8
 #define TYPE_SHOTGUN_BULLET 9
 
+#define WEAPON_SMG_SPREAD 3.1415f/9.0f
+
+#define WEAPON_SHOTGUN_NUMBER_OF_BULLETS 7
+#define WEAPON_SHOTGUN_SPREAD 3.1415f/7.0f
+
+#define ZOMBIE_HIT_FADE_TIME 2.0f
+
 #include <bitset>
+#include <random>
+#include <unordered_map>
 
 #include "Screen.hpp"
 #include "Sprite.hpp"
@@ -63,13 +77,14 @@ public:
     RoomScreen();
     virtual ~RoomScreen() override;
 
-    virtual void update(float dt) override;
+    virtual void update(float dt, sf::RenderWindow& window) override;
     virtual void handleEvent(const sf::Event& event) override;
     virtual void draw(sf::RenderWindow& window) override;
 
     virtual unsigned int switchScreen() override;
 
     void createZombie(float x, float y);
+    void fireWeapon(char type, float angle, const sf::Vector2f& pos);
     void spawnBullet(char type, float x, float y, float angle);
 
 private:
@@ -86,11 +101,7 @@ private:
         1 - Right pressed
         2 - Up pressed
         3 - Down pressed
-        4, 5 - (4 is lesser bit)
-            00 - was moving Left
-            01 - was moving Right
-            10 - was moving Up
-            11 - was moving Down
+        4 - Mouse button is down
     */
     std::bitset<32> flags;
 
@@ -105,6 +116,13 @@ private:
     Entity weaponLaserBullet;
     Entity weaponShotgun;
     Entity weaponShotgunBullet;
+
+    std::mt19937 gen;
+    std::uniform_real_distribution<float> zeroToOneDist;
+
+    std::unordered_map<unsigned int, sf::Vector2f> playerWeaponOffsets;
+
+    unsigned int currentWeapon;
 
 };
 

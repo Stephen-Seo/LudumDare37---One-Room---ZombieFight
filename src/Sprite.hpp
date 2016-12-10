@@ -45,6 +45,8 @@ public:
     void update(float dt);
     void draw(sf::RenderWindow& window);
 
+    void setColor(sf::Color color = sf::Color::White);
+
 private:
     sf::Sprite sprite;
     unsigned int currentPhase;
