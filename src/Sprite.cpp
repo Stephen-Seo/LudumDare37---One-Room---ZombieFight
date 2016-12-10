@@ -1,6 +1,8 @@
 
 #include "Sprite.hpp"
 
+#include <cassert>
+
 SpriteData::SpriteData(sf::IntRect subRect, float duration) :
 subRect(subRect),
 duration(duration)
@@ -8,16 +10,23 @@ duration(duration)
 }
 
 Sprite::Sprite(SpriteMap* externalMap) :
+sprite(),
+currentPhase(0),
+currentIndex(0),
 timer(0.0f),
 spriteDirty(true),
+spriteMap(),
 externalSpriteMap(externalMap)
 {
 }
 
 Sprite::Sprite(sf::Texture& texture, SpriteMap* externalMap) :
 sprite(texture),
+currentPhase(0),
+currentIndex(0),
 timer(0.0f),
 spriteDirty(true),
+spriteMap(),
 externalSpriteMap(externalMap)
 {
 }
@@ -75,6 +84,17 @@ unsigned int Sprite::getPhase()
 void Sprite::update(float dt)
 {
     timer += dt;
+
+#ifndef NDEBUG
+    if(externalSpriteMap)
+    {
+        assert(currentPhase < externalSpriteMap->size());
+    }
+    else
+    {
+        assert(currentPhase < spriteMap.size());
+    }
+#endif
 
     auto currentPhaseVector = (externalSpriteMap ?
         externalSpriteMap->find(currentPhase)->second :

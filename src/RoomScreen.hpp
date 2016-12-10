@@ -5,6 +5,7 @@
 #define ENTITY_VECTOR_START_SIZE 256
 #define ZOMBIE_START_HEALTH 100
 #define ZOMBIE_WALK_FRAME_TIME 0.35f
+#define ZOMBIE_DAMAGE 18
 
 #define PLAYER_START_HEALTH 100
 #define PLAYER_WALK_FRAME_TIME 0.27f
@@ -47,6 +48,7 @@
 #define WEAPON_SHOTGUN_SPREAD 3.1415f/7.0f
 
 #define ZOMBIE_HIT_FADE_TIME 2.0f
+#define PLAYER_HIT_FADE_TIME 1.0f
 
 #include <bitset>
 #include <random>
@@ -102,6 +104,7 @@ private:
         2 - Up pressed
         3 - Down pressed
         4 - Mouse button is down
+        5 - reset screen
     */
     std::bitset<32> flags;
 

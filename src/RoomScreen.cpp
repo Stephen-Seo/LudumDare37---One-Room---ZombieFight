@@ -8,6 +8,7 @@
 #include <GDT/CollisionDetection.hpp>
 
 Entity::Entity() :
+sprite(),
 health(ZOMBIE_START_HEALTH),
 alive(false),
 velX(0.0f),
@@ -27,6 +28,8 @@ lifetime(1.0f)
 }
 
 RoomScreen::RoomScreen() :
+baseZombieSprite(),
+zombieSpriteMap(),
 entityVector(ENTITY_VECTOR_START_SIZE),
 flags(),
 playerDiag(PLAYER_WALK_SPEED / std::sqrt(2.0f)),
@@ -86,6 +89,8 @@ currentWeapon(TYPE_SHOTGUN)
     playerTexture.loadFromFile("res/player.png");
     player.sprite.setTexture(playerTexture);
     player.health = PLAYER_START_HEALTH;
+    player.lifetime = 0.0f;
+    player.alive = true;
 
     // standing facing South
     player.sprite.registerMapping(0, SpriteData(
@@ -484,6 +489,41 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                 {
                     iter->lifetime = 0.0f;
                 }
+
+                // check collision with player
+                if(player.lifetime == 0.0f)
+                {
+                    float playerBox[8] = {
+                        player.sprite.getPosition().x,
+                        player.sprite.getPosition().y,
+                        player.sprite.getPosition().x + 32.0f,
+                        player.sprite.getPosition().y,
+                        player.sprite.getPosition().x + 32.0f,
+                        player.sprite.getPosition().y + 64.0f,
+                        player.sprite.getPosition().x,
+                        player.sprite.getPosition().y + 64.0f
+                    };
+                    if(GDT::isWithinPolygon(playerBox, 8,
+                            iter->sprite.getPosition().x,
+                            iter->sprite.getPosition().y) ||
+                        GDT::isWithinPolygon(playerBox, 8,
+                            iter->sprite.getPosition().x + 32.0f,
+                            iter->sprite.getPosition().y) ||
+                        GDT::isWithinPolygon(playerBox, 8,
+                            iter->sprite.getPosition().x + 32.0f,
+                            iter->sprite.getPosition().y + 64.0f) ||
+                        GDT::isWithinPolygon(playerBox, 8,
+                            iter->sprite.getPosition().x,
+                            iter->sprite.getPosition().y + 64.0f))
+                    {
+                        player.health -= ZOMBIE_DAMAGE;
+                        if(player.health < 0)
+                        {
+                            player.alive = false;
+                        }
+                        player.lifetime = PLAYER_HIT_FADE_TIME;
+                    }
+                }
             }
 
             iter->sprite.update(dt);
@@ -494,10 +534,20 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
     }
 
     player.sprite.update(dt);
-    player.sprite.move(
-        player.velX * dt,
-        player.velY * dt
-    );
+    if(player.alive)
+    {
+        player.sprite.move(
+            player.velX * dt,
+            player.velY * dt
+        );
+    }
+    player.lifetime -= dt;
+    if(player.lifetime < 0.0f)
+    {
+        player.lifetime = 0.0f;
+    }
+    unsigned char playerHit = 255 * (1.0f - player.lifetime / PLAYER_HIT_FADE_TIME);
+    player.sprite.setColor(sf::Color(255, playerHit, playerHit));
 
     std::cout << " End Update." << std::endl;
 //    std::cout << "Entities size: " << entityVector.size() << std::endl;
@@ -530,6 +580,11 @@ void RoomScreen::handleEvent(const sf::Event& event)
         {
             // move down
             flags.set(3);
+        }
+        else if(event.key.code == sf::Keyboard::Escape)
+        {
+            // reset game
+            flags.set(5);
         }
     }
     else if(event.type == sf::Event::KeyReleased)
@@ -596,6 +651,10 @@ void RoomScreen::draw(sf::RenderWindow& window)
 
 unsigned int RoomScreen::switchScreen()
 {
+    if(flags.test(5))
+    {
+        return 1;
+    }
     return 0;
 }
 
