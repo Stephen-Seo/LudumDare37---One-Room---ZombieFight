@@ -39,7 +39,9 @@ std::unordered_map<uint64_t, uint64_t> shortestPath(
     std::unordered_map<uint64_t, uint32_t> costSoFar;
     std::priority_queue<ShortestPathData> frontier;
 
-    uint64_t currentPos = (uint64_t)startX | ((uint64_t)startY << 32);
+    uint64_t currentPos;
+    ((int32_t*) &currentPos)[0] = startX;
+    ((int32_t*) &currentPos)[1] = startY;
     frontier.push(ShortestPathData(startX, startY, 0));
     cameFrom.insert(std::make_pair(
         currentPos,
@@ -54,14 +56,14 @@ std::unordered_map<uint64_t, uint64_t> shortestPath(
     {
         ShortestPathData current = frontier.top();
         frontier.pop();
-        currentPos = (uint64_t)current.x | ((uint64_t)current.y << 32);
+        ((int32_t*) &currentPos)[0] = current.x;
+        ((int32_t*) &currentPos)[1] = current.y;
 
         if(current.x == goalX && current.y == goalY)
         {
             break;
         }
 
-        // right of current
         ShortestPathData nextData;
         uint64_t nextPos;
         uint32_t newCost = costSoFar.at(currentPos) + 1;
@@ -72,22 +74,26 @@ std::unordered_map<uint64_t, uint64_t> shortestPath(
             case 0: // left
                 nextData.x = current.x - 1;
                 nextData.y = current.y;
-                nextPos = (uint64_t)nextData.x | ((uint64_t)nextData.y << 32);
+                ((int32_t*) &nextPos)[0] = nextData.x;
+                ((int32_t*) &nextPos)[1] = nextData.y;
                 break;
             case 1: // right
                 nextData.x = current.x + 1;
                 nextData.y = current.y;
-                nextPos = (uint64_t)nextData.x | ((uint64_t)nextData.y << 32);
+                ((int32_t*) &nextPos)[0] = nextData.x;
+                ((int32_t*) &nextPos)[1] = nextData.y;
                 break;
             case 2: // up
                 nextData.x = current.x;
                 nextData.y = current.y - 1;
-                nextPos = (uint64_t)nextData.x | ((uint64_t)nextData.y << 32);
+                ((int32_t*) &nextPos)[0] = nextData.x;
+                ((int32_t*) &nextPos)[1] = nextData.y;
                 break;
             case 3: // down
                 nextData.x = current.x;
                 nextData.y = current.y + 1;
-                nextPos = (uint64_t)nextData.x | ((uint64_t)nextData.y << 32);
+                ((int32_t*) &nextPos)[0] = nextData.x;
+                ((int32_t*) &nextPos)[1] = nextData.y;
                 break;
             }
 
@@ -96,7 +102,7 @@ std::unordered_map<uint64_t, uint64_t> shortestPath(
                 newCost < costSoFar.at(nextPos)))
             {
                 costSoFar.insert(std::make_pair(nextPos, newCost));
-                nextData.priority = newCost + heuristic(nextData.x, nextData.y, goalX, goalY);
+                nextData.priority = -newCost - heuristic(nextData.x, nextData.y, goalX, goalY);
                 frontier.push(nextData);
                 cameFrom.insert(std::make_pair(nextPos, currentPos));
             }
@@ -105,3 +111,33 @@ std::unordered_map<uint64_t, uint64_t> shortestPath(
 
     return cameFrom;
 }
+
+std::unordered_map<uint64_t, uint64_t> invertPathMap(
+    const std::unordered_map<uint64_t, uint64_t>& map,
+    int32_t goalX, int32_t goalY
+)
+{
+    uint64_t goal;
+    ((int32_t*) &goal)[0] = goalX;
+    ((int32_t*) &goal)[1] = goalY;
+    return invertPathMap(map, goal);
+}
+
+std::unordered_map<uint64_t, uint64_t> invertPathMap(
+    const std::unordered_map<uint64_t, uint64_t>& map,
+    uint64_t goal
+)
+{
+    std::unordered_map<uint64_t, uint64_t> newMap;
+    uint64_t current = goal;
+    uint64_t next = map.at(goal);
+    newMap.insert(std::make_pair(current, current));
+    do {
+        newMap.insert(std::make_pair(next, current));
+        current = next;
+        next = map.at(current);
+    } while (current != next);
+
+    return newMap;
+}
+

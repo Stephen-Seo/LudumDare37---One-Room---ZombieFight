@@ -26,5 +26,15 @@ std::unordered_map<uint64_t, uint64_t> shortestPath(
     std::function<bool(int32_t, int32_t)> isObstacle
 );
 
+std::unordered_map<uint64_t, uint64_t> invertPathMap(
+    const std::unordered_map<uint64_t, uint64_t>& map,
+    int32_t goalX, int32_t goalY
+);
+
+std::unordered_map<uint64_t, uint64_t> invertPathMap(
+    const std::unordered_map<uint64_t, uint64_t>& map,
+    uint64_t goal
+);
+
 #endif
 

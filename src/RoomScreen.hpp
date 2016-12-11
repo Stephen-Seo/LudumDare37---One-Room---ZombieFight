@@ -6,6 +6,7 @@
 #define ZOMBIE_START_HEALTH 100
 #define ZOMBIE_WALK_FRAME_TIME 0.35f
 #define ZOMBIE_DAMAGE 18
+#define ZOMBIE_WALK_SPEED 110.0f
 
 #define PLAYER_START_HEALTH 100
 #define PLAYER_WALK_FRAME_TIME 0.27f
@@ -50,6 +51,8 @@
 #define ZOMBIE_HIT_FADE_TIME 2.0f
 #define PLAYER_HIT_FADE_TIME 1.0f
 
+#define PATH_FINDING_BLOCK_SIZE 25.0f
+
 #include <bitset>
 #include <random>
 #include <unordered_map>
@@ -73,6 +76,10 @@ struct Entity
 
     float lifetime;
     char type;
+
+    uint64_t destination;
+    std::unordered_map<uint64_t, uint64_t> pathMap;
+    uint64_t currentDestination;
 };
 
 class RoomScreen : public Screen
@@ -130,6 +137,10 @@ private:
     unsigned int currentWeapon;
 
     sf::Music zombieFightMusic;
+
+    sf::RectangleShape wall;
+    sf::FloatRect walls[6];
+    float wallsF[6][8];
 
 };
 
