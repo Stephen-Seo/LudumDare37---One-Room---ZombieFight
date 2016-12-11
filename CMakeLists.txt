@@ -22,13 +22,19 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 endif()
 
-add_executable(LD37 ${LD37_SOURCES})
+add_executable(LD37_ZombieFight ${LD37_SOURCES})
 
 find_package(SFML 2 REQUIRED audio graphics window system)
-target_include_directories(LD37 PUBLIC ${SFML_INCLUDE_DIR})
-target_link_libraries(LD37 PUBLIC ${SFML_LIBRARIES})
+target_include_directories(LD37_ZombieFight PUBLIC ${SFML_INCLUDE_DIR})
+target_link_libraries(LD37_ZombieFight PUBLIC ${SFML_LIBRARIES})
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/GameDevTools)
-target_include_directories(LD37 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/GameDevTools/src)
-target_link_libraries(LD37 PUBLIC GameDevTools)
+target_include_directories(LD37_ZombieFight PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/GameDevTools/src)
+target_link_libraries(LD37_ZombieFight PUBLIC GameDevTools)
+
+install(TARGETS LD37_ZombieFight
+    RUNTIME DESTINATION bin)
+
+install(DIRECTORY res
+    DESTINATION bin)
 
