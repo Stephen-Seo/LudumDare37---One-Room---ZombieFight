@@ -240,7 +240,9 @@ RoomScreen::~RoomScreen()
 
 void RoomScreen::update(float dt, sf::RenderWindow& window)
 {
+#ifndef NDEBUG
     std::cout << "Start update...";
+#endif
     // player input
     if(flags.test(0) && !flags.test(1))
     {
@@ -553,8 +555,10 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
     unsigned char playerHit = 255 * (1.0f - player.lifetime / PLAYER_HIT_FADE_TIME);
     player.sprite.setColor(sf::Color(255, playerHit, playerHit));
 
+#ifndef NDEBUG
     std::cout << " End Update." << std::endl;
 //    std::cout << "Entities size: " << entityVector.size() << std::endl;
+#endif
 }
 
 void RoomScreen::handleEvent(const sf::Event& event)
@@ -637,7 +641,9 @@ void RoomScreen::handleEvent(const sf::Event& event)
 
 void RoomScreen::draw(sf::RenderWindow& window)
 {
+#ifndef NDEBUG
     std::cout << "Start draw...";
+#endif
     for(auto iter = entityVector.begin();
         iter != entityVector.end();
         ++iter)
@@ -650,7 +656,9 @@ void RoomScreen::draw(sf::RenderWindow& window)
 
     player.sprite.draw(window);
 
+#ifndef NDEBUG
     std::cout << " End draw." << std::endl;
+#endif
 }
 
 unsigned int RoomScreen::switchScreen()

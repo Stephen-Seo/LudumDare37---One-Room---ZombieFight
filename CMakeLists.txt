@@ -7,6 +7,7 @@ set(LD37_SOURCES
     src/Game.cpp
     src/RoomScreen.cpp
     src/Sprite.cpp
+    src/PathFinding.cpp
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
