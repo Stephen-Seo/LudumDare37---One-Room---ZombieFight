@@ -2,7 +2,7 @@
 #include "RoomScreen.hpp"
 
 #include <cmath>
-
+#include <string>
 #include <iostream>
 
 #include <GDT/CollisionDetection.hpp>
@@ -39,7 +39,11 @@ flags(),
 playerDiag(PLAYER_WALK_SPEED / std::sqrt(2.0f)),
 gen(std::random_device()()),
 zeroToOneDist(0.0f, 1.0f),
-currentWeapon(TYPE_SHOTGUN)
+currentWeapon(TYPE_SMG),
+currentLevel(1),
+zombieCount(1),
+playerRegenTimer(0.0f),
+itemBoxEntity()
 {
     zombieTexture.loadFromFile("res/zombie.png");
 
@@ -231,26 +235,26 @@ currentWeapon(TYPE_SHOTGUN)
     playerWeaponOffsets.insert(std::make_pair(7, sf::Vector2f(5.0f, 29.0f)));
 
     // walls
-    walls[0].left = 150;
+    walls[0].left = 200;
     walls[0].top = 125;
     walls[0].width = 25;
-    walls[0].height = 200;
+    walls[0].height = 100;
 
-    walls[1].left = 175;
+    walls[1].left = 225;
     walls[1].top = 125;
-    walls[1].width = 125;
+    walls[1].width = 100;
     walls[1].height = 25;
 
-    walls[2].left = 175;
-    walls[2].top = 300;
-    walls[2].width = 125;
-    walls[2].height = 25;
+    walls[2].left = 575;
+    walls[2].top = 250;
+    walls[2].width = 25;
+    walls[2].height = 100;
 
-    walls[3].left = 625;
-    walls[3].top = 125;
-    walls[3].width = 25;
-    walls[3].height = 200;
-
+    walls[3].left = 475;
+    walls[3].top = 325;
+    walls[3].width = 100;
+    walls[3].height = 25;
+/*
     walls[4].left = 500;
     walls[4].top = 125;
     walls[4].width = 125;
@@ -260,69 +264,167 @@ currentWeapon(TYPE_SHOTGUN)
     walls[5].top = 300;
     walls[5].width = 125;
     walls[5].height = 25;
+*/
+    for(unsigned int i = 0; i < 4; ++i)
+    {
+        wallsF[i][0] = walls[i].left;
+        wallsF[i][1] = walls[i].top;
+        wallsF[i][2] = walls[i].left + walls[i].width;
+        wallsF[i][3] = walls[i].top;
+        wallsF[i][4] = walls[i].left + walls[i].width;
+        wallsF[i][5] = walls[i].top + walls[i].height;
+        wallsF[i][6] = walls[i].left;
+        wallsF[i][7] = walls[i].top + walls[i].height;
+    }
+/*
+    wallsFAlternate[0][0] = 150;
+    wallsFAlternate[0][1] = 125 - 25;
+    wallsFAlternate[0][2] = 150 + 25;
+    wallsFAlternate[0][3] = 125 - 25;
+    wallsFAlternate[0][4] = 150 + 25;
+    wallsFAlternate[0][5] = 125 + 200;
+    wallsFAlternate[0][6] = 150;
+    wallsFAlternate[0][7] = 125 + 200;
 
-    wallsF[0][0] = 150;
-    wallsF[0][1] = 125;
-    wallsF[0][2] = 150 + 25;
-    wallsF[0][3] = 125;
-    wallsF[0][4] = 150 + 25;
-    wallsF[0][5] = 125 + 200;
-    wallsF[0][6] = 150;
-    wallsF[0][7] = 125 + 200;
+    wallsFAlternate[1][0] = 175;
+    wallsFAlternate[1][1] = 125 - 25;
+    wallsFAlternate[1][2] = 175 + 125;
+    wallsFAlternate[1][3] = 125 - 25;
+    wallsFAlternate[1][4] = 175 + 125;
+    wallsFAlternate[1][5] = 125 + 25;
+    wallsFAlternate[1][6] = 175;
+    wallsFAlternate[1][7] = 125 + 25;
 
-    wallsF[1][0] = 175;
-    wallsF[1][1] = 125;
-    wallsF[1][2] = 175 + 125;
-    wallsF[1][3] = 125;
-    wallsF[1][4] = 175 + 125;
-    wallsF[1][5] = 125 + 25;
-    wallsF[1][6] = 175;
-    wallsF[1][7] = 125 + 25;
+    wallsFAlternate[2][0] = 175;
+    wallsFAlternate[2][1] = 300 - 25;
+    wallsFAlternate[2][2] = 175 + 125;
+    wallsFAlternate[2][3] = 300 - 25;
+    wallsFAlternate[2][4] = 175 + 125;
+    wallsFAlternate[2][5] = 300 + 25;
+    wallsFAlternate[2][6] = 175;
+    wallsFAlternate[2][7] = 300 + 25;
 
-    wallsF[2][0] = 175;
-    wallsF[2][1] = 300;
-    wallsF[2][2] = 175 + 125;
-    wallsF[2][3] = 300;
-    wallsF[2][4] = 175 + 125;
-    wallsF[2][5] = 300 + 25;
-    wallsF[2][6] = 175;
-    wallsF[2][7] = 300 + 25;
+    wallsFAlternate[3][0] = 625;
+    wallsFAlternate[3][1] = 125 - 25;
+    wallsFAlternate[3][2] = 625 + 25;
+    wallsFAlternate[3][3] = 125 - 25;
+    wallsFAlternate[3][4] = 625 + 25;
+    wallsFAlternate[3][5] = 125 + 200;
+    wallsFAlternate[3][6] = 625;
+    wallsFAlternate[3][7] = 125 + 200;
 
-    wallsF[3][0] = 625;
-    wallsF[3][1] = 125;
-    wallsF[3][2] = 625 + 25;
-    wallsF[3][3] = 125;
-    wallsF[3][4] = 625 + 25;
-    wallsF[3][5] = 125 + 200;
-    wallsF[3][6] = 625;
-    wallsF[3][7] = 125 + 200;
+    wallsFAlternate[4][0] = 500;
+    wallsFAlternate[4][1] = 125 - 25;
+    wallsFAlternate[4][2] = 500 + 125;
+    wallsFAlternate[4][3] = 125 - 25;
+    wallsFAlternate[4][4] = 500 + 125;
+    wallsFAlternate[4][5] = 125 + 25;
+    wallsFAlternate[4][6] = 500;
+    wallsFAlternate[4][7] = 125 + 25;
 
-    wallsF[4][0] = 500;
-    wallsF[4][1] = 125;
-    wallsF[4][2] = 500 + 125;
-    wallsF[4][3] = 125;
-    wallsF[4][4] = 500 + 125;
-    wallsF[4][5] = 125 + 25;
-    wallsF[4][6] = 500;
-    wallsF[4][7] = 125 + 25;
-
-    wallsF[5][0] = 500;
-    wallsF[5][1] = 300;
-    wallsF[5][2] = 500 + 125;
-    wallsF[5][3] = 300;
-    wallsF[5][4] = 500 + 125;
-    wallsF[5][5] = 300 + 25;
-    wallsF[5][6] = 500;
-    wallsF[5][7] = 300 + 25;
-
+    wallsFAlternate[5][0] = 500;
+    wallsFAlternate[5][1] = 300 - 25;
+    wallsFAlternate[5][2] = 500 + 125;
+    wallsFAlternate[5][3] = 300 - 25;
+    wallsFAlternate[5][4] = 500 + 125;
+    wallsFAlternate[5][5] = 300 + 25;
+    wallsFAlternate[5][6] = 500;
+    wallsFAlternate[5][7] = 300 + 25;
+*/
     wall.setFillColor(sf::Color(127, 50, 0));
 
     // other initializations
-    createZombie(50, 50);
+    createZombie(-50, -50);
 
+    // music
     zombieFightMusic.openFromFile("res/LD37_ZombieFight.ogg");
     zombieFightMusic.setLoop(true);
+    zombieFightMusic.setVolume(70.0f);
     zombieFightMusic.play();
+
+    // sfx
+    smgSfxBuffer.loadFromFile("res/smg.ogg");
+    rifleSfxBuffer.loadFromFile("res/rifle.ogg");
+    laserSfxBuffer.loadFromFile("res/laser.ogg");
+    shotgunSfxBuffer.loadFromFile("res/shotgun.ogg");
+    zombieHitBuffer.loadFromFile("res/zombieHit.ogg");
+    zombieDeadBuffer.loadFromFile("res/zombieDead.ogg");
+    weaponGetBuffer.loadFromFile("res/weaponGet.ogg");
+
+    smgSfxSound.setBuffer(smgSfxBuffer);
+    rifleSfxSound.setBuffer(rifleSfxBuffer);
+    laserSfxSound.setBuffer(laserSfxBuffer);
+    shotgunSfxSound.setBuffer(shotgunSfxBuffer);
+    zombieHitSound.setBuffer(zombieHitBuffer);
+    zombieDeadSound.setBuffer(zombieDeadBuffer);
+    weaponGetSound.setBuffer(weaponGetBuffer);
+
+    // hp bar
+    hpBar.setSize(sf::Vector2f(HP_BAR_WIDTH, HP_BAR_HEIGHT));
+    hpBar.setOutlineThickness(1.0f);
+    hpBar.setOutlineColor(sf::Color::White);
+
+    // item box
+    itemBoxEntity.alive = true;
+    itemBoxEntity.type = TYPE_ITEM_BOX;
+    itemBoxEntity.sprite.setTexture(weaponsTexture);
+    itemBoxEntity.sprite.registerMapping(0, SpriteData(
+        sf::IntRect(0, 48, 32, 32), 0.1f
+    ));
+    itemBoxEntity.sprite.registerMapping(0, SpriteData(
+        sf::IntRect(32, 48, 32, 32), 0.1f
+    ));
+    itemBoxEntity.sprite.registerMapping(0, SpriteData(
+        sf::IntRect(64, 48, 32, 32), 0.1f
+    ));
+    itemBoxEntity.sprite.registerMapping(0, SpriteData(
+        sf::IntRect(96, 48, 32, 32), 0.1f
+    ));
+    itemBoxEntity.sprite.registerMapping(0, SpriteData(
+        sf::IntRect(128, 48, 32, 32), 0.1f
+    ));
+    itemBoxEntity.lifetime = ITEM_BOX_EXPIRE_TIME;
+
+    // current weapon icon
+    currentWeaponIcon.setTexture(weaponsTexture);
+    currentWeaponIcon.setPosition(0.0f, 450.0f - 32.0f);
+
+    // setup weapon count
+    ammoCount.insert(std::make_pair(TYPE_SMG, 100));
+    ammoCount.insert(std::make_pair(TYPE_RIFLE, 0));
+    ammoCount.insert(std::make_pair(TYPE_LASER, 0));
+    ammoCount.insert(std::make_pair(TYPE_SHOTGUN, 0));
+
+    // font
+    font.loadFromFile("res/ClearSans-Regular.ttf");
+
+    // ammo text
+    currentAmmoCount.setFont(font);
+    currentAmmoCount.setCharacterSize(30);
+    currentAmmoCount.setFillColor(sf::Color::White);
+    currentAmmoCount.setOutlineColor(sf::Color::Black);
+    currentAmmoCount.setOutlineThickness(2.0);
+    currentAmmoCount.setPosition(2.0f, 450.0f - 64.0f);
+    updateWeaponInfo();
+
+    // info text
+    infoText.setFont(font);
+    infoText.setCharacterSize(30);
+    infoText.setFillColor(sf::Color::White);
+    infoText.setOutlineColor(sf::Color::Green);
+    infoText.setOutlineThickness(1.0f);
+
+//    displayInfo("Spacebar/RightClick to change weapons\n(when you get them)");
+    displayInfo("WASD - Movement\nMouse Left Click - Fire current weapon");
+
+    // reload meter
+    reloadMeter.setSize(sf::Vector2f(32.0f, 5.0f));
+    reloadMeter.setPosition(0.0f, 450.0f - 5.0f);
+
+#ifndef NDEBUG
+    zombieTarget.setSize(sf::Vector2f(PATH_FINDING_BLOCK_WIDTH, PATH_FINDING_BLOCK_HEIGHT));
+    zombieTarget.setFillColor(sf::Color(255, 255, 0, 127));
+#endif
 }
 
 RoomScreen::~RoomScreen()
@@ -334,6 +436,45 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
 #ifndef NDEBUG
 //    std::cout << "Start update...";
 #endif
+    // check zombie count
+    if(zombieCount == 0)
+    {
+        ++currentLevel;
+        if(currentLevel != LEVEL_TO_WIN)
+        {
+            for(unsigned int i = 0; i < currentLevel; ++i)
+            {
+                float r = zeroToOneDist(gen);
+                if(r < 0.25f)
+                {
+                    createZombie(-50.0f, zeroToOneDist(gen) * 450.0f - 32.0f);
+                }
+                else if(r < 0.5f)
+                {
+                    createZombie(zeroToOneDist(gen) * 800.0f - 16.0f, -70.0f);
+                }
+                else if(r < 0.75f)
+                {
+                    createZombie(850.0f, zeroToOneDist(gen) * 450.0f - 32.0f);
+                }
+                else
+                {
+                    createZombie(zeroToOneDist(gen) * 800.0f - 16.0f, 470.0f);
+                }
+            }
+        }
+        else
+        {
+            zombieFightMusic.stop();
+            zombieFightMusic.openFromFile("res/survive.ogg");
+            zombieFightMusic.setVolume(100.0f);
+            zombieFightMusic.setLoop(false);
+            zombieFightMusic.play();
+            displayInfo("You Survived!!");
+        }
+        zombieCount = currentLevel;
+    }
+
     // player input
     if(flags.test(0) && !flags.test(1))
     {
@@ -500,13 +641,36 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                             iter1->sprite.getPosition().x,
                             iter1->sprite.getPosition().y + 64.0f
                         };
-                        auto checkCollision = [&iter, &iter1] (float* array, sf::Vector2f& point) -> bool {
+                        auto checkCollision = [this, &iter, &iter1] (float* array, sf::Vector2f& point) -> bool {
                             if(GDT::isWithinPolygon(array, 8, point.x, point.y))
                             {
                                 iter1->health -= iter->health;
                                 if(iter1->health <= 0)
                                 {
                                     iter1->alive = false;
+                                    zombieDeadSound.play();
+                                    --zombieCount;
+                                    if(zeroToOneDist(gen) < ITEM_BOX_DROP_RATE)
+                                    {
+                                        unsigned int i = 0;
+                                        while(entityVector.at(i).alive)
+                                        {
+                                            ++i;
+                                            if(i >= entityVector.size())
+                                            {
+                                                entityVector.resize(entityVector.size() * 2);
+                                            }
+                                        }
+                                        itemBoxEntity.sprite.setPosition(
+                                            iter->sprite.getPosition().x,
+                                            iter->sprite.getPosition().y + 16.0f
+                                        );
+                                        entityVector.at(i) = itemBoxEntity;
+                                    }
+                                }
+                                else
+                                {
+                                    zombieHitSound.play();
                                 }
                                 iter->alive = false;
                                 iter1->lifetime = ZOMBIE_HIT_FADE_TIME;
@@ -581,36 +745,37 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                 if(iter->destination == iter->currentDestination ||
                     iter->pathMap.empty())
                 {  // get next destination
-                    int32_t zombieX = iter->sprite.getPosition().x / PATH_FINDING_BLOCK_SIZE;
-                    int32_t zombieY = iter->sprite.getPosition().y / PATH_FINDING_BLOCK_SIZE;
-                    int32_t playerX = player.sprite.getPosition().x / PATH_FINDING_BLOCK_SIZE;
-                    int32_t playerY = player.sprite.getPosition().y / PATH_FINDING_BLOCK_SIZE;
+                    int32_t zombieX = iter->sprite.getPosition().x / PATH_FINDING_BLOCK_WIDTH;
+                    int32_t zombieY = iter->sprite.getPosition().y / PATH_FINDING_BLOCK_HEIGHT;
+                    int32_t playerX = player.sprite.getPosition().x / PATH_FINDING_BLOCK_WIDTH;
+                    int32_t playerY = player.sprite.getPosition().y / PATH_FINDING_BLOCK_HEIGHT;
 
                     auto pathMap = shortestPath(zombieX, zombieY, playerX, playerY,
                         [this] (int32_t x, int32_t y) -> bool {
-                            if(x < 0 || y < 0 ||
-                                x > 800.0f / PATH_FINDING_BLOCK_SIZE || y > 450.0f / PATH_FINDING_BLOCK_SIZE
-                                )
+                            if(x < -100.0f / PATH_FINDING_BLOCK_WIDTH ||
+                                y < -100.0f / PATH_FINDING_BLOCK_HEIGHT ||
+                                x > (800.0f + 100.0f) / PATH_FINDING_BLOCK_WIDTH ||
+                                y > (450.0f + 100.0f) / PATH_FINDING_BLOCK_HEIGHT)
                             {
                                 return true;
                             }
-                            for(unsigned int i = 0; i < 6; ++i)
+                            for(unsigned int i = 0; i < 4; ++i)
                             {
                                 if(GDT::isWithinPolygon(wallsF[i], 8,
-                                        x * PATH_FINDING_BLOCK_SIZE,
-                                        y * PATH_FINDING_BLOCK_SIZE) ||
+                                        x * PATH_FINDING_BLOCK_WIDTH,
+                                        y * PATH_FINDING_BLOCK_HEIGHT) ||
                                     GDT::isWithinPolygon(wallsF[i], 8,
-                                        x * PATH_FINDING_BLOCK_SIZE + PATH_FINDING_BLOCK_SIZE,
-                                        y * PATH_FINDING_BLOCK_SIZE) ||
+                                        x * PATH_FINDING_BLOCK_WIDTH + PATH_FINDING_BLOCK_WIDTH,
+                                        y * PATH_FINDING_BLOCK_HEIGHT) ||
                                     GDT::isWithinPolygon(wallsF[i], 8,
-                                        x * PATH_FINDING_BLOCK_SIZE + PATH_FINDING_BLOCK_SIZE,
-                                        y * PATH_FINDING_BLOCK_SIZE + PATH_FINDING_BLOCK_SIZE) ||
+                                        x * PATH_FINDING_BLOCK_WIDTH + PATH_FINDING_BLOCK_WIDTH,
+                                        y * PATH_FINDING_BLOCK_HEIGHT + PATH_FINDING_BLOCK_HEIGHT) ||
                                     GDT::isWithinPolygon(wallsF[i], 8,
-                                        x * PATH_FINDING_BLOCK_SIZE,
-                                        y * PATH_FINDING_BLOCK_SIZE + PATH_FINDING_BLOCK_SIZE) ||
+                                        x * PATH_FINDING_BLOCK_WIDTH,
+                                        y * PATH_FINDING_BLOCK_HEIGHT + PATH_FINDING_BLOCK_HEIGHT) ||
                                     GDT::isWithinPolygon(wallsF[i], 8,
-                                        x * PATH_FINDING_BLOCK_SIZE + PATH_FINDING_BLOCK_SIZE / 2.0f,
-                                        y * PATH_FINDING_BLOCK_SIZE + PATH_FINDING_BLOCK_SIZE / 2.0f))
+                                        x * PATH_FINDING_BLOCK_WIDTH + PATH_FINDING_BLOCK_WIDTH / 2.0f,
+                                        y * PATH_FINDING_BLOCK_HEIGHT + PATH_FINDING_BLOCK_HEIGHT / 2.0f))
                                 {
                                     return true;
                                 }
@@ -632,6 +797,11 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                     }
                     ((int32_t*) &iter->destination)[0] = playerX;
                     ((int32_t*) &iter->destination)[1] = playerY;
+
+//                    iter->currentDestination = iter->actualDestination;
+                    iter->destinationResetTime = 0.0f;
+//                    iter->collideX = 0;
+//                    iter->collideY = 0;
 #ifndef NDEBUG
 //                    std::cout << "New pathmap ";
 #endif
@@ -649,49 +819,133 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                     iter->sprite.getPosition().y + 64.0f
                 };
                 bool colliding = GDT::isWithinPolygon(zombieBox, 8,
-                        ((int32_t*)&iter->currentDestination)[0] * 25.0f,
-                        ((int32_t*)&iter->currentDestination)[1] * 25.0f) ||
+                        ((int32_t*)&iter->currentDestination)[0] * PATH_FINDING_BLOCK_WIDTH,
+                        ((int32_t*)&iter->currentDestination)[1] * PATH_FINDING_BLOCK_HEIGHT) ||
                     GDT::isWithinPolygon(zombieBox, 8,
-                        ((int32_t*)&iter->currentDestination)[0] * 25.0f + 25.0f,
-                        ((int32_t*)&iter->currentDestination)[1] * 25.0f) ||
+                        ((int32_t*)&iter->currentDestination)[0] * PATH_FINDING_BLOCK_WIDTH + PATH_FINDING_BLOCK_WIDTH,
+                        ((int32_t*)&iter->currentDestination)[1] * PATH_FINDING_BLOCK_HEIGHT) ||
                     GDT::isWithinPolygon(zombieBox, 8,
-                        ((int32_t*)&iter->currentDestination)[0] * 25.0f + 25.0f,
-                        ((int32_t*)&iter->currentDestination)[1] * 25.0f + 25.0f) ||
+                        ((int32_t*)&iter->currentDestination)[0] * PATH_FINDING_BLOCK_WIDTH + PATH_FINDING_BLOCK_WIDTH,
+                        ((int32_t*)&iter->currentDestination)[1] * PATH_FINDING_BLOCK_HEIGHT + PATH_FINDING_BLOCK_HEIGHT) ||
                     GDT::isWithinPolygon(zombieBox, 8,
-                        ((int32_t*)&iter->currentDestination)[0] * 25.0f,
-                        ((int32_t*)&iter->currentDestination)[1] * 25.0f + 25.0f);
+                        ((int32_t*)&iter->currentDestination)[0] * PATH_FINDING_BLOCK_WIDTH,
+                        ((int32_t*)&iter->currentDestination)[1] * PATH_FINDING_BLOCK_HEIGHT + PATH_FINDING_BLOCK_HEIGHT);
                 while (colliding)
                 {
                     iter->currentDestination = iter->pathMap.at(iter->currentDestination);
+//                    iter->currentDestination = iter->actualDestination;
+                    iter->destinationResetTime = 0.0f;
                     colliding = GDT::isWithinPolygon(zombieBox, 8,
-                        ((int32_t*)&iter->currentDestination)[0] * 25.0f,
-                        ((int32_t*)&iter->currentDestination)[1] * 25.0f) ||
+                        ((int32_t*)&iter->currentDestination)[0] * PATH_FINDING_BLOCK_WIDTH,
+                        ((int32_t*)&iter->currentDestination)[1] * PATH_FINDING_BLOCK_HEIGHT) ||
                     GDT::isWithinPolygon(zombieBox, 8,
-                        ((int32_t*)&iter->currentDestination)[0] * 25.0f + 25.0f,
-                        ((int32_t*)&iter->currentDestination)[1] * 25.0f) ||
+                        ((int32_t*)&iter->currentDestination)[0] * PATH_FINDING_BLOCK_WIDTH + PATH_FINDING_BLOCK_WIDTH,
+                        ((int32_t*)&iter->currentDestination)[1] * PATH_FINDING_BLOCK_HEIGHT) ||
                     GDT::isWithinPolygon(zombieBox, 8,
-                        ((int32_t*)&iter->currentDestination)[0] * 25.0f + 25.0f,
-                        ((int32_t*)&iter->currentDestination)[1] * 25.0f + 25.0f) ||
+                        ((int32_t*)&iter->currentDestination)[0] * PATH_FINDING_BLOCK_WIDTH + PATH_FINDING_BLOCK_WIDTH,
+                        ((int32_t*)&iter->currentDestination)[1] * PATH_FINDING_BLOCK_HEIGHT + PATH_FINDING_BLOCK_HEIGHT) ||
                     GDT::isWithinPolygon(zombieBox, 8,
-                        ((int32_t*)&iter->currentDestination)[0] * 25.0f,
-                        ((int32_t*)&iter->currentDestination)[1] * 25.0f + 25.0f);
+                        ((int32_t*)&iter->currentDestination)[0] * PATH_FINDING_BLOCK_WIDTH,
+                        ((int32_t*)&iter->currentDestination)[1] * PATH_FINDING_BLOCK_HEIGHT + PATH_FINDING_BLOCK_HEIGHT);
+//                    iter->collideX = 0;
+//                    iter->collideY = 0;
+#ifndef NDEBUG
+                    zombieTarget.setPosition(
+                        ((int32_t*)&iter->currentDestination)[0] * PATH_FINDING_BLOCK_WIDTH,
+                        ((int32_t*)&iter->currentDestination)[1] * PATH_FINDING_BLOCK_HEIGHT
+                    );
+#endif
                     if(iter->destination == iter->currentDestination)
                     {
                         break;
                     }
                 }
 
+                if(iter->destinationResetTime > 0)
+                {
+                    iter->destinationResetTime -= dt;
+                    if(iter->destinationResetTime < 0)
+                    {
+                        iter->destinationResetTime = 0.0f;
+//                        iter->currentDestination = iter->actualDestination;
+                    }
+                }
                 // move
                 float magnitude;
+                iter->velX = ((int32_t*)&iter->currentDestination)[0] * PATH_FINDING_BLOCK_WIDTH;
+//                    + PATH_FINDING_BLOCK_SIZE / 2.0f;
+                iter->velY = ((int32_t*)&iter->currentDestination)[1] * PATH_FINDING_BLOCK_HEIGHT;
+//                    + PATH_FINDING_BLOCK_SIZE / 2.0f;
+/*
+                for(unsigned int i = 0; i < 6; ++i)
+                {
+                    // check right
+                    if(GDT::isWithinPolygon(wallsF[0], 8,
+                        iter->velX + PATH_FINDING_BLOCK_SIZE,
+                        iter->velY))
+                    {
+                        iter->velX -= PATH_FINDING_BLOCK_SIZE;
+                    }
+                    // check left
+                    else if(GDT::isWithinPolygon(wallsF[0], 8,
+                        iter->velX - PATH_FINDING_BLOCK_SIZE,
+                        iter->velY))
+                    {
+                        iter->velX += PATH_FINDING_BLOCK_SIZE;
+                    }
+                    // check up
+                    if(GDT::isWithinPolygon(wallsF[0], 8,
+                        iter->velX,
+                        iter->velY - PATH_FINDING_BLOCK_SIZE))
+                    {
+                        iter->velY += PATH_FINDING_BLOCK_SIZE;
+                    }
+                    // check down
+                    else if(GDT::isWithinPolygon(wallsF[0], 8,
+                        iter->velX,
+                        iter->velY + PATH_FINDING_BLOCK_SIZE))
+                    {
+                        iter->velY -= PATH_FINDING_BLOCK_SIZE;
+                    }
+                }
+                */
+                iter->velX = iter->velX - iter->sprite.getPosition().x;// - 16.0f;
+                iter->velY = iter->velY - iter->sprite.getPosition().y;// - 32.0f;
+                /*
                 iter->velX = (((int32_t*) &iter->currentDestination)[0] * PATH_FINDING_BLOCK_SIZE
-                    + PATH_FINDING_BLOCK_SIZE / 2.0f) - iter->sprite.getPosition().x;
+                    + PATH_FINDING_BLOCK_SIZE / 2.0f)
+                    - iter->sprite.getPosition().x - 16.0f;
                 iter->velY = (((int32_t*) &iter->currentDestination)[1] * PATH_FINDING_BLOCK_SIZE
-                    + PATH_FINDING_BLOCK_SIZE / 2.0f) - iter->sprite.getPosition().y;
+                    + PATH_FINDING_BLOCK_SIZE / 2.0f)
+                    - iter->sprite.getPosition().y - 32.0f;
+                */
+                /*
+                iter->velX += iter->collideX * PATH_FINDING_BLOCK_SIZE;
+                iter->velY += iter->collideY * PATH_FINDING_BLOCK_SIZE;
+                */
+                /*
+                if(iter->velX > 0)
+                {
+                    iter->velX += iter->collideX * PATH_FINDING_BLOCK_SIZE;
+                }
+                else
+                {
+                    iter->velX -= iter->collideX * PATH_FINDING_BLOCK_SIZE;
+                }
+                if(iter->velY > 0)
+                {
+                    iter->velY += iter->collideY * PATH_FINDING_BLOCK_SIZE;
+                }
+                else
+                {
+                    iter->velY -= iter->collideY * PATH_FINDING_BLOCK_SIZE;
+                }
+                */
 
                 magnitude = std::sqrt(iter->velX * iter->velX + iter->velY * iter->velY);
 
-                iter->velX = iter->velX / magnitude * ZOMBIE_WALK_SPEED;
-                iter->velY = iter->velY / magnitude * ZOMBIE_WALK_SPEED;
+                iter->velX = iter->velX / magnitude * ZOMBIE_WALK_SPEED * (1.0f + iter->lifetime / 2.0f);
+                iter->velY = iter->velY / magnitude * ZOMBIE_WALK_SPEED * (1.0f + iter->lifetime / 2.0f);
 
                 if(iter->velX > ZOMBIE_WALK_SPEED / 3.0f)
                 {
@@ -758,6 +1012,74 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
 //                    ", " << ((int32_t*)&iter->destination)[1] << std::endl;
 #endif
             } // TYPE_ZOMBIE
+            else if(iter->type == TYPE_ITEM_BOX)
+            {
+                // check if player picked up box
+                float playerBox[8] = {
+                    player.sprite.getPosition().x,
+                    player.sprite.getPosition().y,
+                    player.sprite.getPosition().x + 32.0f,
+                    player.sprite.getPosition().y,
+                    player.sprite.getPosition().x + 32.0f,
+                    player.sprite.getPosition().y + 64.0f,
+                    player.sprite.getPosition().x,
+                    player.sprite.getPosition().y + 64.0f
+                };
+
+                if(GDT::isWithinPolygon(playerBox, 8,
+                        iter->sprite.getPosition().x,
+                        iter->sprite.getPosition().y) ||
+                    GDT::isWithinPolygon(playerBox, 8,
+                        iter->sprite.getPosition().x + 32.0f,
+                        iter->sprite.getPosition().y) ||
+                    GDT::isWithinPolygon(playerBox, 8,
+                        iter->sprite.getPosition().x + 32.0f,
+                        iter->sprite.getPosition().y + 32.0f) ||
+                    GDT::isWithinPolygon(playerBox, 8,
+                        iter->sprite.getPosition().x,
+                        iter->sprite.getPosition().y + 32.0f))
+                {
+                    iter->alive = false;
+                    float r = zeroToOneDist(gen);
+                    if(r < 0.25f)
+                    {
+                        ammoCount.at(TYPE_SMG) += ITEM_BOX_SMG_AMMO;
+                        currentWeapon = TYPE_SMG;
+                        updateWeaponInfo();
+                    }
+                    else if(r < 0.5f)
+                    {
+                        ammoCount.at(TYPE_RIFLE) += ITEM_BOX_RIFLE_AMMO;
+                        currentWeapon = TYPE_RIFLE;
+                        updateWeaponInfo();
+                    }
+                    else if(r < 0.75f)
+                    {
+                        ammoCount.at(TYPE_LASER) += ITEM_BOX_LASER_AMMO;
+                        currentWeapon = TYPE_LASER;
+                        updateWeaponInfo();
+                    }
+                    else
+                    {
+                        ammoCount.at(TYPE_SHOTGUN) += ITEM_BOX_SHOTGUN_AMMO;
+                        currentWeapon = TYPE_SHOTGUN;
+                        updateWeaponInfo();
+                    }
+                    weaponGetSound.play();
+                }
+
+                // check item box expire
+                iter->lifetime -= dt;
+                if(iter->lifetime < 0.0f)
+                {
+                    iter->alive = false;
+                }
+                else
+                {
+                    iter->sprite.setColor(sf::Color(255, 255, 255,
+                        255 * iter->lifetime / ITEM_BOX_EXPIRE_TIME));
+                }
+            }
 
 
             // movement checks
@@ -768,7 +1090,7 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                 iter->sprite.move(
                     iter->velX * dt,
                     0);
-                for(unsigned int i = 0; i < 6; ++i)
+                for(unsigned int i = 0; i < 4; ++i)
                 {
                     if(GDT::isWithinPolygon(wallsF[i], 8,
                             iter->sprite.getPosition().x,
@@ -802,16 +1124,52 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                 if(hit)
                 {
                     iter->sprite.move(
-                        -iter->velX * dt / 1.5f,
+                        -iter->velX * dt / 2.0f,
                         0
                     );
                     hit = false;
+                    /*
+                    if(iter->velX > 0)
+                    {
+//                        iter->collideX -= 3;
+                        ((int32_t*)&iter->currentDestination)[0] -= 1;
+                        iter->destinationResetTime = ZOMBIE_PATH_RESET_TIME;
+#ifndef NDEBUG
+                        zombieTarget.setPosition(
+                            ((int32_t*)&iter->currentDestination)[0] * 25,
+                            ((int32_t*)&iter->currentDestination)[1] * 25
+                        );
+#endif
+                    }
+                    else
+                    {
+//                        iter->collideX += 3;
+                        ((int32_t*)&iter->currentDestination)[0] += 1;
+                        iter->destinationResetTime = ZOMBIE_PATH_RESET_TIME;
+#ifndef NDEBUG
+                        zombieTarget.setPosition(
+                            ((int32_t*)&iter->currentDestination)[0] * 25,
+                            ((int32_t*)&iter->currentDestination)[1] * 25
+                        );
+#endif
+                    }
+                    */
                 }
+                /*
+                if(iter->collideX > 0)
+                {
+                    iter->collideX -= 1;
+                }
+                else if(iter->collideX < 0)
+                {
+                    iter->collideX += 1;
+                }
+                */
 
                 iter->sprite.move(
                     0,
                     iter->velY * dt);
-                for(unsigned int i = 0; i < 6; ++i)
+                for(unsigned int i = 0; i < 4; ++i)
                 {
                     if(GDT::isWithinPolygon(wallsF[i], 8,
                             iter->sprite.getPosition().x,
@@ -846,9 +1204,45 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                 {
                     iter->sprite.move(
                         0,
-                        -iter->velY * dt / 1.5f
+                        -iter->velY * dt / 2.0f
                     );
+                    /*
+                    if(iter->velY > 0)
+                    {
+//                        iter->collideY -= 3;
+                        ((int32_t*)&iter->currentDestination)[1] -= 1;
+                        iter->destinationResetTime = ZOMBIE_PATH_RESET_TIME;
+#ifndef NDEBUG
+                        zombieTarget.setPosition(
+                            ((int32_t*)&iter->currentDestination)[0] * 25,
+                            ((int32_t*)&iter->currentDestination)[1] * 25
+                        );
+#endif
+                    }
+                    else
+                    {
+//                        iter->collideY += 3;
+                        ((int32_t*)&iter->currentDestination)[1] += 1;
+                        iter->destinationResetTime = ZOMBIE_PATH_RESET_TIME;
+#ifndef NDEBUG
+                        zombieTarget.setPosition(
+                            ((int32_t*)&iter->currentDestination)[0] * 25,
+                            ((int32_t*)&iter->currentDestination)[1] * 25
+                        );
+#endif
+                    }
+                    */
                 }
+                /*
+                if(iter->collideY > 0)
+                {
+                    iter->collideY -= 1;
+                }
+                else if(iter->collideY < 0)
+                {
+                    iter->collideY += 1;
+                }
+                */
             }
             else if(iter->type >= TYPE_SMG_BULLET &&
                 iter->type <= TYPE_SHOTGUN_BULLET)
@@ -861,7 +1255,7 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                 {
                     sf::Vector2f pos = iter->sprite.getTransform() * sf::Vector2f(0, 0);
                     sf::Vector2f pos2 = iter->sprite.getTransform() * sf::Vector2f(16.0f, 16.0f);
-                    for(unsigned int i = 0; i < 6; ++i)
+                    for(unsigned int i = 0; i < 4; ++i)
                     {
                         if(GDT::isWithinPolygon(wallsF[i], 8,
                                 pos.x,
@@ -885,7 +1279,7 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                 {
                     sf::Vector2f pos = iter->sprite.getTransform() * sf::Vector2f(0, 0);
                     sf::Vector2f pos2 = iter->sprite.getTransform() * sf::Vector2f(32.0f, 16.0f);
-                    for(unsigned int i = 0; i < 6; ++i)
+                    for(unsigned int i = 0; i < 4; ++i)
                     {
                         if(GDT::isWithinPolygon(wallsF[i], 8,
                                 pos.x,
@@ -909,7 +1303,7 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                 {
                     sf::Vector2f pos = iter->sprite.getTransform() * sf::Vector2f(0, 0);
                     sf::Vector2f pos2 = iter->sprite.getTransform() * sf::Vector2f(32.0f, 8.0f);
-                    for(unsigned int i = 0; i < 6; ++i)
+                    for(unsigned int i = 0; i < 4; ++i)
                     {
                         if(GDT::isWithinPolygon(wallsF[i], 8,
                                 pos.x,
@@ -950,7 +1344,7 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
         }
         else
         {
-            for(unsigned int i = 0; i < 6; ++i)
+            for(unsigned int i = 0; i < 4; ++i)
             {
                 box[0] = walls[i].left;
                 box[1] = walls[i].top;
@@ -1014,7 +1408,7 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
         }
         else
         {
-            for(unsigned int i = 0; i < 6; ++i)
+            for(unsigned int i = 0; i < 4; ++i)
             {
                 box[0] = walls[i].left;
                 box[1] = walls[i].top;
@@ -1051,7 +1445,13 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                         player.sprite.getPosition().y + 42.7f) ||
                     GDT::isWithinPolygon(box, 8,
                         player.sprite.getPosition().x + 32.0f,
-                        player.sprite.getPosition().y + 42.7f))
+                        player.sprite.getPosition().y + 42.7f) ||
+                    GDT::isWithinPolygon(box, 8,
+                        player.sprite.getPosition().x + 16.0f,
+                        player.sprite.getPosition().y) ||
+                    GDT::isWithinPolygon(box, 8,
+                        player.sprite.getPosition().x + 16.0f,
+                        player.sprite.getPosition().y + 64.0f))
                 {
                     hit = true;
                     break;
@@ -1065,14 +1465,68 @@ void RoomScreen::update(float dt, sf::RenderWindow& window)
                 -player.velY * dt
             );
         }
+        player.lifetime -= dt;
+        if(player.lifetime < 0.0f)
+        {
+            player.lifetime = 0.0f;
+        }
+        unsigned char playerHit = 255 * (1.0f - player.lifetime / PLAYER_HIT_FADE_TIME);
+        player.sprite.setColor(sf::Color(255, playerHit, playerHit));
+
+        // update hp bar
+        float percentage = (float)player.health / (float)PLAYER_START_HEALTH;
+        hpBar.setSize(sf::Vector2f(HP_BAR_WIDTH * percentage, HP_BAR_HEIGHT));
+        hpBar.setFillColor(sf::Color(255 * (1.0f - percentage), 255 * percentage, 0));
+        hpBar.setPosition(
+            player.sprite.getPosition().x + 16.0f - (HP_BAR_WIDTH * percentage / 2.0f),
+            player.sprite.getPosition().y - 5.0f - HP_BAR_HEIGHT);
+
+        playerRegenTimer -= dt;
+        if(playerRegenTimer < 0.0f)
+        {
+            playerRegenTimer = PLAYER_HP_REGEN_TIME;
+            player.health += 3;
+            if(player.health > PLAYER_START_HEALTH)
+            {
+                player.health = PLAYER_START_HEALTH;
+            }
+        }
     }
-    player.lifetime -= dt;
-    if(player.lifetime < 0.0f)
+    else
     {
-        player.lifetime = 0.0f;
+        player.sprite.setColor(sf::Color(200, 0, 0));
+        hpBar.setFillColor(sf::Color::Transparent);
     }
-    unsigned char playerHit = 255 * (1.0f - player.lifetime / PLAYER_HIT_FADE_TIME);
-    player.sprite.setColor(sf::Color(255, playerHit, playerHit));
+
+    // update info text
+    infoTimer -= dt;
+    if(infoTimer < 1.0f)
+    {
+        if(infoTimer < 0.0f)
+        {
+            infoTimer = 0.0f;
+            infoText.setFillColor(sf::Color::Transparent);
+            infoText.setOutlineColor(sf::Color::Transparent);
+            if(!flags.test(6))
+            {
+                flags.set(6);
+                displayInfo("Spacebar/RightClick to change weapons\n(when you get them)");
+            }
+            else if(!flags.test(7))
+            {
+                flags.set(7);
+                displayInfo("Escape to restart");
+            }
+        }
+        else
+        {
+            infoText.setFillColor(sf::Color(255, 255, 255, 255 * infoTimer));
+            infoText.setOutlineColor(sf::Color(0, 255, 0, 255 * infoTimer));
+        }
+    }
+
+    // update reload meter
+    updateReloadMeter();
 
 #ifndef NDEBUG
 //    std::cout << " End Update." << std::endl;
@@ -1113,6 +1567,17 @@ void RoomScreen::handleEvent(const sf::Event& event)
             // reset game
             flags.set(5);
         }
+        else if(event.key.code == sf::Keyboard::Space)
+        {
+            switchWeapon();
+            updateWeaponInfo();
+        }
+#ifndef NDEBUG
+        else if(event.key.code == sf::Keyboard::J)
+        {
+            std::cout << "J pressed" << std::endl;
+        }
+#endif
     }
     else if(event.type == sf::Event::KeyReleased)
     {
@@ -1156,6 +1621,12 @@ void RoomScreen::handleEvent(const sf::Event& event)
     {
         flags.reset(4);
     }
+    else if(event.type == sf::Event::MouseButtonPressed &&
+        event.mouseButton.button == sf::Mouse::Right)
+    {
+        switchWeapon();
+        updateWeaponInfo();
+    }
 }
 
 void RoomScreen::draw(sf::RenderWindow& window)
@@ -1163,7 +1634,7 @@ void RoomScreen::draw(sf::RenderWindow& window)
 #ifndef NDEBUG
 //    std::cout << "Start draw...";
 #endif
-    for(unsigned int i = 0; i < 6; ++i)
+    for(unsigned int i = 0; i < 4; ++i)
     {
         wall.setPosition(walls[i].left, walls[i].top);
         wall.setSize(sf::Vector2f(walls[i].width, walls[i].height));
@@ -1182,8 +1653,15 @@ void RoomScreen::draw(sf::RenderWindow& window)
 
     player.sprite.draw(window);
 
+    window.draw(hpBar);
+    window.draw(currentWeaponIcon);
+    window.draw(currentAmmoCount);
+    window.draw(infoText);
+    window.draw(reloadMeter);
+
 #ifndef NDEBUG
 //    std::cout << " End draw." << std::endl;
+//    window.draw(zombieTarget);
 #endif
 }
 
@@ -1220,36 +1698,48 @@ void RoomScreen::fireWeapon(char type, float angle, const sf::Vector2f& firePos)
     switch(type)
     {
     case TYPE_SMG:
-        if(weaponSMG.lifetime > 0.0f)
+        if(weaponSMG.lifetime > 0.0f || ammoCount.at(type) == 0)
         {
             break;
         }
         weaponSMG.lifetime = WEAPON_SMG_RELOAD_TIME;
         spawnBullet(TYPE_SMG_BULLET, firePos.x, firePos.y, angle);
+        ammoCount.at(type) -= 1;
+        smgSfxSound.play();
+        updateWeaponInfo();
         break;
     case TYPE_RIFLE:
-        if(weaponRifle.lifetime > 0.0f)
+        if(weaponRifle.lifetime > 0.0f || ammoCount.at(type) == 0)
         {
             break;
         }
         weaponRifle.lifetime = WEAPON_RIFLE_RELOAD_TIME;
         spawnBullet(TYPE_RIFLE_BULLET, firePos.x, firePos.y, angle);
+        ammoCount.at(type) -= 1;
+        rifleSfxSound.play();
+        updateWeaponInfo();
         break;
     case TYPE_LASER:
-        if(weaponLaser.lifetime > 0.0f)
+        if(weaponLaser.lifetime > 0.0f || ammoCount.at(type) == 0)
         {
             break;
         }
         weaponLaser.lifetime = WEAPON_LASER_RELOAD_TIME;
         spawnBullet(TYPE_LASER_BULLET, firePos.x, firePos.y, angle);
+        ammoCount.at(type) -= 1;
+        laserSfxSound.play();
+        updateWeaponInfo();
         break;
     case TYPE_SHOTGUN:
-        if(weaponShotgun.lifetime > 0.0f)
+        if(weaponShotgun.lifetime > 0.0f || ammoCount.at(type) == 0)
         {
             break;
         }
         weaponShotgun.lifetime = WEAPON_SHOTGUN_RELOAD_TIME;
         spawnBullet(TYPE_SHOTGUN_BULLET, firePos.x, firePos.y, angle);
+        ammoCount.at(type) -= 1;
+        shotgunSfxSound.play();
+        updateWeaponInfo();
         break;
     }
 }
@@ -1323,6 +1813,152 @@ void RoomScreen::spawnBullet(char type, float x, float y, float angle)
                 indices[i+1] = indices[i] + 1;
             }
         }
+    }
+}
+
+void RoomScreen::updateWeaponInfo()
+{
+    switch(currentWeapon)
+    {
+    case TYPE_SMG:
+        currentWeaponIcon.setTextureRect(sf::IntRect(0, 0, 32, 32));
+        break;
+    case TYPE_RIFLE:
+        currentWeaponIcon.setTextureRect(sf::IntRect(32, 0, 48, 32));
+        break;
+    case TYPE_LASER:
+        currentWeaponIcon.setTextureRect(sf::IntRect(80, 0, 32, 32));
+        break;
+    case TYPE_SHOTGUN:
+        currentWeaponIcon.setTextureRect(sf::IntRect(112, 0, 48, 32));
+        break;
+    default:
+        break;
+    }
+    currentAmmoCount.setString(std::to_string(ammoCount.at(currentWeapon)));
+}
+
+void RoomScreen::switchWeapon()
+{
+    if(currentWeapon == TYPE_SMG)
+    {
+        if(ammoCount.at(TYPE_RIFLE) > 0)
+        {
+            currentWeapon = TYPE_RIFLE;
+        }
+        else if(ammoCount.at(TYPE_LASER) > 0)
+        {
+            currentWeapon = TYPE_LASER;
+        }
+        else if(ammoCount.at(TYPE_SHOTGUN) > 0)
+        {
+            currentWeapon = TYPE_SHOTGUN;
+        }
+    }
+    else if(currentWeapon == TYPE_RIFLE)
+    {
+        if(ammoCount.at(TYPE_LASER) > 0)
+        {
+            currentWeapon = TYPE_LASER;
+        }
+        else if(ammoCount.at(TYPE_SHOTGUN) > 0)
+        {
+            currentWeapon = TYPE_SHOTGUN;
+        }
+        else if(ammoCount.at(TYPE_SMG) > 0)
+        {
+            currentWeapon = TYPE_SMG;
+        }
+    }
+    else if(currentWeapon == TYPE_LASER)
+    {
+        if(ammoCount.at(TYPE_SHOTGUN) > 0)
+        {
+            currentWeapon = TYPE_SHOTGUN;
+        }
+        else if(ammoCount.at(TYPE_SMG) > 0)
+        {
+            currentWeapon = TYPE_SMG;
+        }
+        else if(ammoCount.at(TYPE_RIFLE) > 0)
+        {
+            currentWeapon = TYPE_RIFLE;
+        }
+    }
+    else if(currentWeapon == TYPE_SHOTGUN)
+    {
+        if(ammoCount.at(TYPE_SMG) > 0)
+        {
+            currentWeapon = TYPE_SMG;
+        }
+        else if(ammoCount.at(TYPE_RIFLE) > 0)
+        {
+            currentWeapon = TYPE_RIFLE;
+        }
+        else if(ammoCount.at(TYPE_LASER) > 0)
+        {
+            currentWeapon = TYPE_LASER;
+        }
+    }
+}
+
+void RoomScreen::displayInfo(const sf::String& string)
+{
+    infoText.setString(string);
+    infoText.setPosition(400.0f - infoText.getLocalBounds().width / 2.0f, 200.0f);
+    infoTimer = INFO_TEXT_TIME;
+    infoText.setFillColor(sf::Color::White);
+    infoText.setOutlineColor(sf::Color::Green);
+}
+
+void RoomScreen::updateReloadMeter()
+{
+    switch(currentWeapon)
+    {
+    case TYPE_SMG:
+        reloadMeter.setSize(sf::Vector2f(32.0f * (1.0f - weaponSMG.lifetime / WEAPON_SMG_RELOAD_TIME), 5.0f));
+        if(weaponSMG.lifetime == 0.0f)
+        {
+            reloadMeter.setFillColor(sf::Color::Green);
+        }
+        else
+        {
+            reloadMeter.setFillColor(sf::Color::Red);
+        }
+        break;
+    case TYPE_RIFLE:
+        reloadMeter.setSize(sf::Vector2f(48.0f * (1.0f - weaponRifle.lifetime / WEAPON_RIFLE_RELOAD_TIME), 5.0f));
+        if(weaponRifle.lifetime == 0.0f)
+        {
+            reloadMeter.setFillColor(sf::Color::Green);
+        }
+        else
+        {
+            reloadMeter.setFillColor(sf::Color::Red);
+        }
+        break;
+    case TYPE_LASER:
+        reloadMeter.setSize(sf::Vector2f(32.0f * (1.0f - weaponLaser.lifetime / WEAPON_LASER_RELOAD_TIME), 5.0f));
+        if(weaponLaser.lifetime == 0.0f)
+        {
+            reloadMeter.setFillColor(sf::Color::Green);
+        }
+        else
+        {
+            reloadMeter.setFillColor(sf::Color::Red);
+        }
+        break;
+    case TYPE_SHOTGUN:
+        reloadMeter.setSize(sf::Vector2f(48.0f * (1.0f - weaponShotgun.lifetime / WEAPON_SHOTGUN_RELOAD_TIME), 5.0f));
+        if(weaponShotgun.lifetime == 0.0f)
+        {
+            reloadMeter.setFillColor(sf::Color::Green);
+        }
+        else
+        {
+            reloadMeter.setFillColor(sf::Color::Red);
+        }
+        break;
     }
 }
 

@@ -7,7 +7,7 @@
 
 Game::Game() :
 runFlag(true),
-window(sf::VideoMode(800, 450), GAME_TITLE_NAME)
+window(sf::VideoMode(800, 450), GAME_TITLE_NAME, sf::Style::Close | sf::Style::Titlebar)
 {
 //    window.setFramerateLimit(60);
     currentScreen = std::make_unique<RoomScreen>();
