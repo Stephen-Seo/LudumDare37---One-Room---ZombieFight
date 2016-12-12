@@ -1,4 +1,8 @@
 
+# Ludum Dare 37
+
+[Ludum Dare entry is here.](http://ludumdare.com/compo/ludum-dare-37/?action=preview&uid=37473)
+
 # Compiling
 
 After cloning the project, you must do
@@ -18,4 +22,8 @@ make
 ```
 
 (note GameDevTools has glm as a dependency)
+
+# Running the Game
+
+Make sure the res folder is in the same directory as the binary, or else the resources won't load.
 
